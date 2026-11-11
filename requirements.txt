@@ -1,0 +1,20 @@
+# Torch/torchvision are installed separately from the CUDA 12.8 index.
+transformers==4.57.1
+timm==1.0.20
+numpy==1.26.4
+scipy==1.15.3
+Pillow==11.3.0
+opencv-python-headless==4.11.0.86
+pycocotools==2.0.10
+PyYAML==6.0.3
+omegaconf==2.3.0
+iopath==0.1.10
+einops==0.8.1
+torchmetrics==1.8.2
+scikit-learn==1.7.2
+pandas==2.3.3
+submitit==1.5.3
+termcolor==3.2.0
+tqdm==4.67.1
+tensorboard==2.20.0
+matplotlib==3.10.7

@@ -1,0 +1,7 @@
+name: dino-whu-m2f
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - git

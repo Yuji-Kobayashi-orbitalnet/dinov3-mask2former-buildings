@@ -1,0 +1,22 @@
+{
+  "whu": {
+    "train": {
+      "images": "/mnt/nas02/WHU_Building_Dataset/train/images",
+      "labels": "/mnt/nas02/WHU_Building_Dataset/train/masks"
+    },
+    "validation": {
+      "images": "/mnt/nas02/WHU_Building_Dataset/val/images",
+      "labels": "/mnt/nas02/WHU_Building_Dataset/val/masks"
+    }
+  },
+  "waterloo": {
+    "train": {
+      "images": "/mnt/nas02/Waterloo_Building_Dataset/train/image",
+      "labels": "/mnt/nas02/Waterloo_Building_Dataset/train/label"
+    },
+    "validation": {
+      "images": "/mnt/nas02/Waterloo_Building_Dataset/validation/image",
+      "labels": "/mnt/nas02/Waterloo_Building_Dataset/validation/label"
+    }
+  }
+}

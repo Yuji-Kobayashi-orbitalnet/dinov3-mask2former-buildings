@@ -249,7 +249,7 @@ Detectron2の `INPUT.FORMAT` などの設定は使わず、データローダー
 
 WHUには複数の配布形式・解像度があります。すべてのWHU画像が1024×1024であるという意味ではありません。手元のファイルを確認してから設定します。
 
-今回の配置は次のとおりです。
+以下では、データセットの保存先を `/mnt/nas/` と仮定します。これは配置例です。実際の保存先に合わせて、確認コマンドのルート引数と `sources_input.json` のパスを変更してください。
 
 ```text
 /mnt/nas/
@@ -273,10 +273,12 @@ Waterlooなどのアーカイブを展開した直後には、`train/train/image
 
 ```bash
 cd ~/dinov3_mask2former/joint_native
-python prepare_joint.py --inspect
+python prepare_joint.py --inspect \
+  --whu-root /mnt/nas/WHU_Building_Dataset \
+  --waterloo-root /mnt/nas/Waterloo_Building_Dataset
 ```
 
-画像フォルダの候補、件数、サンプル画像のサイズが表示されます。ここでは、WHUが1024×1024、Waterlooが512×512であることを確認します。すべての画像の寸法は、続く変換処理でも検査します。
+画像フォルダの候補、件数、サンプル画像のサイズが表示されます。`--inspect` はルート引数を使って調べるため、設定JSONとは別に実際のパスを指定してください。ここでは、WHUが1024×1024、Waterlooが512×512であることを確認します。すべての画像の寸法は、続く変換処理でも検査します。
 
 ### 使用するラベルを明示する
 
@@ -342,7 +344,9 @@ Mask2Formerのクエリ数は、1枚の画像に対して用意する予測枠�
 
 画像サイズについては、512×512の画像同士、1024×1024の画像同士でバッチを作ります。1つのバッチ内のサイズを合わせるための拡大・縮小やパディングは行いません。
 
-今回の設定は実バッチサイズ1、勾配蓄積8です。原則として8画像分の勾配を蓄積して1回更新し、エポック末尾の残りが8未満の場合はその枚数で更新します。訓練時には画像とマスクを同時に90度単位で回転・反転します。
+本記事の設定は実バッチサイズ8、勾配蓄積1です。同じ画像サイズの8枚をまとめて処理し、バッチごとに1回更新します。各画像サイズのグループ末尾に8枚未満の端数がある場合も、その枚数でバッチを作って学習します。訓練時には画像とマスクを同時に90度単位で回転・反転します。
+
+まず物理バッチサイズ8でメモリ使用量と処理速度を確認します。GPUメモリが不足する場合は物理バッチを小さくし、必要に応じて勾配蓄積で実効バッチサイズを補います。検証損失は比較条件を揃えるため、学習バッチとは別に1画像ずつ計算します。
 
 各画像は1エポックにつき1回使用します。画像数の比率はWHUが約6.5%、Waterlooが約93.5%であり、両者を50対50に再サンプリングする構成ではありません。
 
@@ -353,8 +357,8 @@ Mask2Formerのクエリ数は、1枚の画像に対して用意する予測枠�
 | 項目 | 今回の設定 |
 |---|---|
 | 精度形式 | FP32 |
-| 実バッチサイズ | 1 |
-| 勾配蓄積 | 8 |
+| 実バッチサイズ | 8 |
+| 勾配蓄積 | 1 |
 | DataLoader workers | 2 |
 | optimizer | AdamW |
 | 開始時の学習率 | 1e-5 |
@@ -420,19 +424,19 @@ python create_initial_checkpoint.py \
 ```bash
 python -u train_to_convergence.py \
   --init-weights checkpoints/initial_q158.pt \
-  --batch-size 1 --accumulation 8 --workers 2 \
+  --batch-size 8 --accumulation 1 --workers 2 \
   --lr 1e-5 --epochs 50 \
   --output runs/joint_native_convergence
 ```
 
 ### 既存の学習済み重みから追加学習する場合
 
-筆者の環境では、事前の試行で得た `runs/joint_native_lr1e5_trial/best.pt` を起点に追加学習します。こちらは、初回開始コマンドの代わりに実行します。
+この実装で作成した学習済みチェックポイントを持っている場合は、その重みを起点に追加学習できます。以下は `checkpoints/existing_building_model.pt` に配置した場合の例です。実際のファイルを指定し、初回開始コマンドの代わりに実行してください。
 
 ```bash
 python -u train_to_convergence.py \
-  --init-weights runs/joint_native_lr1e5_trial/best.pt \
-  --batch-size 1 --accumulation 8 --workers 2 \
+  --init-weights checkpoints/existing_building_model.pt \
+  --batch-size 8 --accumulation 1 --workers 2 \
   --lr 1e-5 --epochs 50 \
   --output runs/joint_native_convergence
 ```
@@ -446,12 +450,12 @@ python -u train_to_convergence.py \
 ```bash
 python -u train_to_convergence.py \
   --resume runs/joint_native_convergence/last.pt \
-  --batch-size 1 --accumulation 8 --workers 2 \
+  --batch-size 8 --accumulation 1 --workers 2 \
   --lr 1e-5 --epochs 100 \
   --output runs/joint_native_convergence
 ```
 
-`--resume` はoptimizer、学習率調整器、停滞回数などを復元します。学習率が自動で下がっていても、コマンドの `--lr` には開始時に指定した値を入れます。実際の再開時の学習率は保存状態から復元されます。
+`--resume` はoptimizer、学習率調整器、停滞回数などを復元します。バッチサイズ、勾配蓄積、seed、データなどは保存された学習設定と一致させてください。上の再開例はバッチ8・勾配蓄積1で開始した学習に対応します。学習率が自動で下がっていても、コマンドの `--lr` には開始時に指定した値を入れます。実際の再開時の学習率は保存状態から復元されます。
 
 `--epochs 100` は追加100回という意味ではなく、この実行系列で到達するエポック番号の上限です。チェックポイントは各エポックの検証損失計測後に保存するため、エポック途中で止まった場合はそのエポックをやり直します。
 

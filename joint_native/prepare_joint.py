@@ -197,8 +197,10 @@ def prepare(inputs, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--whu-root", type=Path, default=Path("/mnt/nas/WHU_Building_Dataset"))
-    parser.add_argument("--waterloo-root", type=Path, default=Path("/mnt/nas/Waterloo_Building_Dataset"))
+    parser.add_argument("--whu-root", type=Path, default=Path("/mnt/nas/WHU_Building_Dataset"),
+                        help="WHU root (example location; change to your dataset directory)")
+    parser.add_argument("--waterloo-root", type=Path, default=Path("/mnt/nas/Waterloo_Building_Dataset"),
+                        help="Waterloo root (example location; change to your dataset directory)")
     parser.add_argument("--config", type=Path, help="Explicit source/split directories and annotation paths")
     parser.add_argument("--inspect", action="store_true", help="List split directories and sample native sizes")
     parser.add_argument("--output", type=Path, default=Path("prepared_joint_native"))
